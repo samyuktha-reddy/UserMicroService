@@ -28,24 +28,34 @@ public class UserAccountController {
 	private AccountRepository actRepo;
 	@Autowired
 	private UsersRepository userRepo;
-	
+
 	@GetMapping("/getAllUsers")
-	public List<UserEntity> getAllUsers()
-	{
+	public List<UserEntity> getAllUsers() {
 		return userRepo.findAll();
 	}
-	
+
 	@GetMapping("/getUsersById/{id}")
-	public Optional<UserEntity> getUserById(@PathVariable int id)
-	{
+	public Optional<UserEntity> getUserById(@PathVariable int id) {
 		Optional<UserEntity> obj = userRepo.findById(id);
 		return obj;
 	}
-	
-	
+
+	@GetMapping("/getUsersBalanceById/{id}")
+	public ResponseEntity<?> getUserBalanceById(@PathVariable int id) {
+		Optional<UserEntity> obj = userRepo.findById(id);
+		if (obj.isPresent()) {
+			UserEntity presentUser = obj.get();
+			AccountDetails userAccount = presentUser.getUsrAccntId();
+
+			return new ResponseEntity<Long>(userAccount.getAccountBalance(), HttpStatus.OK);
+		}else {
+			return new ResponseEntity<HttpStatus>(HttpStatus.NOT_FOUND);
+		}
+
+	}
+
 	@PostMapping("/addUser")
-	public void addUser(@RequestBody UserEntity usr)
-	{
+	public void addUser(@RequestBody UserEntity usr) {
 		AccountDetails acctDetails = new AccountDetails();
 		acctDetails.setAccountBalance(0);
 		acctDetails.setAccountType("checkings");
@@ -54,60 +64,52 @@ public class UserAccountController {
 		usr.setUsrAccntId(acctDetails);
 		userRepo.save(usr);
 	}
-	
-	
+
 	@DeleteMapping("/deleteUserById/{id}")
-	public void deleteUserById(@PathVariable int id)
-	{
+	public void deleteUserById(@PathVariable int id) {
 		userRepo.deleteById(id);
 	}
-	
-	@PutMapping("/deductBalance/{usrId}")
-	public ResponseEntity<?> deductBalanceByUserId(@PathVariable int usrId, @PathVariable(value="deductionAmount") Long deductionAmount)
-	{
-		Optional<AccountDetails> obj3 = actRepo.findByXyz(usrId);
-		
-		if(obj3.isPresent())
-		{
+
+	@PutMapping("/deductBalance/{usrId}/{deductionAmount}")
+	public ResponseEntity<?> deductBalanceByUserId(@PathVariable int usrId,
+			@PathVariable(value = "deductionAmount") Long deductionAmount) {
+		Optional<UserEntity> userEn = userRepo.findById(usrId);
+		Optional<AccountDetails> obj3 = actRepo.findByXyz(userEn);
+
+		if (obj3.isPresent()) {
 			AccountDetails currentAccount = obj3.get();
-			if(currentAccount.getAccountBalance()>deductionAmount)
-			{
+			if (currentAccount.getAccountBalance() > deductionAmount) {
 				long currentBalance = currentAccount.getAccountBalance();
 				currentAccount.setAccountBalance(currentBalance - deductionAmount);
 				actRepo.save(currentAccount);
 				return new ResponseEntity<HttpStatus>(HttpStatus.OK);
-				
+
+			} else {
+				return new ResponseEntity<String>("Not Sufficient Balance", HttpStatus.BAD_REQUEST);
 			}
-			else 
-			{
-				return new ResponseEntity<String>("Not Sufficient Balance",HttpStatus.BAD_REQUEST);
-			}
-			
+
+		} else {
+			return new ResponseEntity<String>("No Account Found", HttpStatus.NOT_FOUND);
 		}
-		else 
-		{
-			return new ResponseEntity<String>("No Account Found",HttpStatus.NOT_FOUND);
-		}
-		
+
 	}
-	
-	
-	@PutMapping("/addBalance/{usrId}")
-	public ResponseEntity<?> creditBalance(@PathVariable int usrId, @PathVariable(value="creditAmount") Long creditAmount)
-	{
-		Optional<AccountDetails> optionalEntity = actRepo.findByXyz(usrId);
-		if(optionalEntity.isPresent()) {
+
+	@PutMapping("/addBalance/{usrId}/{creditAmount}")
+	public ResponseEntity<?> creditBalance(@PathVariable int usrId,
+			@PathVariable(value = "creditAmount") Long creditAmount) {
+		Optional<UserEntity> userEntity = userRepo.findById(usrId);
+		Optional<AccountDetails> optionalEntity = actRepo.findByXyz(userEntity);
+		if (optionalEntity.isPresent()) {
 			AccountDetails currentAccount = optionalEntity.get();
 			long currentBalance = currentAccount.getAccountBalance();
-			long updatedBalance = currentBalance+creditAmount;
+			long updatedBalance = currentBalance + creditAmount;
 			currentAccount.setAccountBalance(updatedBalance);
 			actRepo.save(currentAccount);
 			return new ResponseEntity<HttpStatus>(HttpStatus.OK);
-		}else {
+		} else {
 			return new ResponseEntity<String>("Invalid UserId", HttpStatus.NOT_FOUND);
 		}
-		
-		
+
 	}
 
 }

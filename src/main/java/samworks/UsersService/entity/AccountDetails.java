@@ -1,6 +1,5 @@
 package samworks.UsersService.entity;
 
-import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
@@ -66,9 +65,5 @@ public class AccountDetails {
 		this.xyz = xyz;
 		this.accountType = accountType;
 		this.accountBalance = accountBalance;
-	}
-	
-	
-	
-	
+	}	
 }
